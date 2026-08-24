@@ -599,7 +599,7 @@ endmacro()
 # - MIR_SHARED opt
 # - HAVE_DLOPEN opt
 macro(CheckMir)
-    if(VIDEO_MIR)
+    if(SDL_VIDEO_MIR)
         find_library(MIR_LIB mirclient mircommon egl)
         pkg_check_modules(MIR_TOOLKIT mirclient mircommon)
         pkg_check_modules(EGL egl)
