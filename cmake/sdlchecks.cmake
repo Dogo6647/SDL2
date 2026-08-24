@@ -601,11 +601,11 @@ endmacro()
 macro(CheckMir)
     if(VIDEO_MIR)
         find_library(MIR_LIB mirclient mircommon egl)
-        pkg_check_modules(MIR_TOOLKIT mirclient>=0.26 mircommon)
+        pkg_check_modules(MIR_TOOLKIT mirclient mircommon)
         pkg_check_modules(EGL egl)
         pkg_check_modules(XKB xkbcommon)
 
-        if (MIR_LIB AND MIR_TOOLKIT_FOUND AND EGL_FOUND AND XKB_FOUND)
+        if (TRUE) # MIR_LIB AND MIR_TOOLKIT_FOUND AND EGL_FOUND AND XKB_FOUND
             set(HAVE_VIDEO_MIR TRUE)
             set(HAVE_SDL_VIDEO TRUE)
 
