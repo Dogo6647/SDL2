@@ -34,6 +34,9 @@ Fedora 35, all available features enabled:
     libusb-devel pipewire-jack-audio-connection-kit-devel libdecor-devel \
     libsamplerate-devel
 
+Ubuntu 16.10 can also add "libmirclient-dev libxkbcommon-dev" to that command
+line for Mir support.
+
 NOTES:
 - This includes all the audio targets except arts and esd, because Ubuntu
   (and/or Debian) pulled their packages, but in theory SDL still supports them.
