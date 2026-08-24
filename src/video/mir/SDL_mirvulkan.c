@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2018 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2021 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -30,7 +30,6 @@
 
 #include "SDL_mirvideo.h"
 #include "SDL_mirwindow.h"
-#include "SDL_assert.h"
 
 #include "SDL_loadso.h"
 #include "SDL_mirvulkan.h"
@@ -43,53 +42,59 @@ int MIR_Vulkan_LoadLibrary(_THIS, const char *path)
     SDL_bool hasSurfaceExtension = SDL_FALSE;
     SDL_bool hasMIRSurfaceExtension = SDL_FALSE;
     PFN_vkGetInstanceProcAddr vkGetInstanceProcAddr = NULL;
-    if(_this->vulkan_config.loader_handle)
+    Uint32 i;
+
+    if (_this->vulkan_config.loader_handle) {
         return SDL_SetError("Vulkan already loaded");
+    }
 
     /* Load the Vulkan loader library */
-    if(!path)
+    if (!path) {
         path = SDL_getenv("SDL_VULKAN_LIBRARY");
-    if(!path)
+    }
+    if (!path) {
         path = "libvulkan.so.1";
+    }
     _this->vulkan_config.loader_handle = SDL_LoadObject(path);
-    if(!_this->vulkan_config.loader_handle)
+    if (!_this->vulkan_config.loader_handle) {
         return -1;
+    }
     SDL_strlcpy(_this->vulkan_config.loader_path, path,
                 SDL_arraysize(_this->vulkan_config.loader_path));
     vkGetInstanceProcAddr = (PFN_vkGetInstanceProcAddr)SDL_LoadFunction(
         _this->vulkan_config.loader_handle, "vkGetInstanceProcAddr");
-    if(!vkGetInstanceProcAddr)
+    if (!vkGetInstanceProcAddr) {
         goto fail;
+    }
     _this->vulkan_config.vkGetInstanceProcAddr = (void *)vkGetInstanceProcAddr;
     _this->vulkan_config.vkEnumerateInstanceExtensionProperties =
         (void *)((PFN_vkGetInstanceProcAddr)_this->vulkan_config.vkGetInstanceProcAddr)(
             VK_NULL_HANDLE, "vkEnumerateInstanceExtensionProperties");
-    if(!_this->vulkan_config.vkEnumerateInstanceExtensionProperties)
+    if (!_this->vulkan_config.vkEnumerateInstanceExtensionProperties) {
         goto fail;
+    }
     extensions = SDL_Vulkan_CreateInstanceExtensionsList(
         (PFN_vkEnumerateInstanceExtensionProperties)
             _this->vulkan_config.vkEnumerateInstanceExtensionProperties,
         &extensionCount);
-    if(!extensions)
+    if (!extensions) {
         goto fail;
-    for(Uint32 i = 0; i < extensionCount; i++)
-    {
-        if(SDL_strcmp(VK_KHR_SURFACE_EXTENSION_NAME, extensions[i].extensionName) == 0)
+    }
+    for (i = 0; i < extensionCount; i++) {
+        if (SDL_strcmp(VK_KHR_SURFACE_EXTENSION_NAME, extensions[i].extensionName) == 0) {
             hasSurfaceExtension = SDL_TRUE;
-        else if(SDL_strcmp(VK_KHR_MIR_SURFACE_EXTENSION_NAME, extensions[i].extensionName) == 0)
+        } else if (SDL_strcmp(VK_KHR_MIR_SURFACE_EXTENSION_NAME, extensions[i].extensionName) == 0) {
             hasMIRSurfaceExtension = SDL_TRUE;
+        }
     }
     SDL_free(extensions);
-    if(!hasSurfaceExtension)
-    {
+    if (!hasSurfaceExtension) {
         SDL_SetError("Installed Vulkan doesn't implement the "
                      VK_KHR_SURFACE_EXTENSION_NAME " extension");
         goto fail;
-    }
-    else if(!hasMIRSurfaceExtension)
-    {
+    } else if (!hasMIRSurfaceExtension) {
         SDL_SetError("Installed Vulkan doesn't implement the "
-                     VK_KHR_MIR_SURFACE_EXTENSION_NAME "extension");
+                     VK_KHR_MIR_SURFACE_EXTENSION_NAME " extension");
         goto fail;
     }
     return 0;
@@ -102,8 +107,7 @@ fail:
 
 void MIR_Vulkan_UnloadLibrary(_THIS)
 {
-    if(_this->vulkan_config.loader_handle)
-    {
+    if (_this->vulkan_config.loader_handle) {
         SDL_UnloadObject(_this->vulkan_config.loader_handle);
         _this->vulkan_config.loader_handle = NULL;
     }
@@ -117,8 +121,7 @@ SDL_bool MIR_Vulkan_GetInstanceExtensions(_THIS,
     static const char *const extensionsForMir[] = {
         VK_KHR_SURFACE_EXTENSION_NAME, VK_KHR_MIR_SURFACE_EXTENSION_NAME
     };
-    if(!_this->vulkan_config.loader_handle)
-    {
+    if (!_this->vulkan_config.loader_handle) {
         SDL_SetError("Vulkan is not loaded");
         return SDL_FALSE;
     }
@@ -142,14 +145,12 @@ SDL_bool MIR_Vulkan_CreateSurface(_THIS,
     VkMirSurfaceCreateInfoKHR createInfo;
     VkResult result;
 
-    if(!_this->vulkan_config.loader_handle)
-    {
+    if (!_this->vulkan_config.loader_handle) {
         SDL_SetError("Vulkan is not loaded");
         return SDL_FALSE;
     }
 
-    if(!vkCreateMirSurfaceKHR)
-    {
+    if (!vkCreateMirSurfaceKHR) {
         SDL_SetError(VK_KHR_MIR_SURFACE_EXTENSION_NAME
                      " extension is not enabled in the Vulkan instance.");
         return SDL_FALSE;
@@ -159,11 +160,11 @@ SDL_bool MIR_Vulkan_CreateSurface(_THIS,
     createInfo.pNext = NULL;
     createInfo.flags = 0;
     createInfo.connection = windowData->mir_data->connection;
-    createInfo.mirSurface = windowData->window;
+    /* Mir renamed MirSurface to MirWindow; public Vulkan struct still uses MirSurface* */
+    createInfo.mirSurface = (MirSurface *)windowData->window;
     result = vkCreateMirSurfaceKHR(instance, &createInfo,
                                        NULL, surface);
-    if(result != VK_SUCCESS)
-    {
+    if (result != VK_SUCCESS) {
         SDL_SetError("vkCreateMirSurfaceKHR failed: %s",
                      SDL_Vulkan_GetResultString(result));
         return SDL_FALSE;

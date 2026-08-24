@@ -129,15 +129,15 @@ HandleMouseMotion(SDL_Window* sdl_window, int x, int y)
 }
 
 static void
-HandleTouchPress(int device_id, int source_id, SDL_bool down, float x, float y, float pressure)
+HandleTouchPress(SDL_Window* window, int device_id, int source_id, SDL_bool down, float x, float y, float pressure)
 {
-    SDL_SendTouch(device_id, source_id, down, x, y, pressure);
+    SDL_SendTouch(device_id, source_id, window, down, x, y, pressure);
 }
 
 static void
-HandleTouchMotion(int device_id, int source_id, float x, float y, float pressure)
+HandleTouchMotion(SDL_Window* window, int device_id, int source_id, float x, float y, float pressure)
 {
-    SDL_SendTouchMotion(device_id, source_id, x, y, pressure);
+    SDL_SendTouchMotion(device_id, source_id, window, x, y, pressure);
 }
 
 static void
@@ -149,7 +149,7 @@ HandleMouseScroll(SDL_Window* sdl_window, float hscroll, float vscroll)
 static void
 AddTouchDevice(int device_id)
 {
-    if (SDL_AddTouch(device_id, "") < 0)
+    if (SDL_AddTouch(device_id, SDL_TOUCH_DEVICE_DIRECT, "mir_touch") < 0)
         SDL_SetError("Error: can't add touch %s, %d", __FILE__, __LINE__);
 }
 
@@ -177,13 +177,13 @@ HandleTouchEvent(MirTouchEvent const* touch, int device_id, SDL_Window* sdl_wind
 
         switch (MIR_mir_touch_event_action(touch, i)) {
             case mir_touch_action_up:
-                HandleTouchPress(device_id, id, SDL_FALSE, n_x, n_y, pressure);
+                HandleTouchPress(sdl_window, device_id, id, SDL_FALSE, n_x, n_y, pressure);
                 break;
             case mir_touch_action_down:
-                HandleTouchPress(device_id, id, SDL_TRUE, n_x, n_y, pressure);
+                HandleTouchPress(sdl_window, device_id, id, SDL_TRUE, n_x, n_y, pressure);
                 break;
             case mir_touch_action_change:
-                HandleTouchMotion(device_id, id, n_x, n_y, pressure);
+                HandleTouchMotion(sdl_window, device_id, id, n_x, n_y, pressure);
                 break;
             case mir_touch_actions:
                 break;

@@ -185,8 +185,8 @@ MIR_GetWindowWMInfo(_THIS, SDL_Window* window, SDL_SysWMinfo* info)
 
         info->subsystem = SDL_SYSWM_MIR;
         info->info.mir.connection = mir_window->mir_data->connection;
-        // Cannot change this to window due to it being in the public API
-        info->info.mir.surface = mir_window->window;
+        /* Cannot change this field name; public API still exposes MirSurface* */
+        info->info.mir.surface = (struct MirSurface *)mir_window->window;
 
         return SDL_TRUE;
     }
@@ -313,7 +313,7 @@ MIR_SetWindowTitle(_THIS, SDL_Window* window)
 }
 
 void
-MIR_SetWindowGrab(_THIS, SDL_Window* window, SDL_bool grabbed)
+MIR_SetWindowMouseGrab(_THIS, SDL_Window* window, SDL_bool grabbed)
 {
     MIR_Data*   mir_data   = _this->driverdata;
     MIR_Window* mir_window = window->driverdata;
@@ -336,7 +336,7 @@ MIR_SetWindowGammaRamp(_THIS, SDL_Window* window, Uint16 const* ramp)
     MirOutput* output = SDL_GetDisplayForWindow(window)->driverdata;
     Uint32 ramp_size = 256;
 
-    // FIXME Need to apply the changes to the output, once that public API function is around
+    /* FIXME Need to apply the changes to the output, once that public API function is around */
     if (MIR_mir_output_is_gamma_supported(output) == mir_output_gamma_supported) {
         MIR_mir_output_set_gamma(output,
                                  ramp + ramp_size * 0,

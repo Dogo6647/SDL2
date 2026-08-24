@@ -27,11 +27,8 @@
 
 #if SDL_VIDEO_DRIVER_MIR
 
-#include "SDL_assert.h"
-#include "SDL_log.h"
-
-#include "SDL_mirwindow.h"
 #include "SDL_video.h"
+#include "SDL_mirwindow.h"
 
 #include "SDL_mirframebuffer.h"
 #include "SDL_mirmouse.h"
@@ -96,32 +93,6 @@ MIR_ResizeWindowShape(SDL_Window* window)
     return SDL_Unsupported();
 }
 
-static int
-MIR_Available()
-{
-    int available = 0;
-
-    if (SDL_MIR_LoadSymbols()) {
-
-        /* Lets ensure we can connect to the mir server */
-        MirConnection* connection = MIR_mir_connect_sync(NULL, SDL_FUNCTION);
-
-        if (!MIR_mir_connection_is_valid(connection)) {
-            SDL_LogWarn(SDL_LOG_CATEGORY_VIDEO, "Unable to connect to the mir server %s",
-                MIR_mir_connection_get_error_message(connection));
-
-            return available;
-        }
-
-        MIR_mir_connection_release(connection);
-
-        available = 1;
-        SDL_MIR_UnloadSymbols();
-    }
-
-    return available;
-}
-
 static void
 MIR_DeleteDevice(SDL_VideoDevice* device)
 {
@@ -139,10 +110,20 @@ MIR_CreateDevice(int device_index)
 {
     MIR_Data* mir_data;
     SDL_VideoDevice* device = NULL;
+    MirConnection* connection;
 
     if (!SDL_MIR_LoadSymbols()) {
         return NULL;
     }
+
+    /* Ensure we can connect to the Mir server before claiming the driver */
+    connection = MIR_mir_connect_sync(NULL, SDL_FUNCTION);
+    if (!MIR_mir_connection_is_valid(connection)) {
+        MIR_mir_connection_release(connection);
+        SDL_MIR_UnloadSymbols();
+        return NULL;
+    }
+    MIR_mir_connection_release(connection);
 
     device = SDL_calloc(1, sizeof(SDL_VideoDevice));
     if (!device) {
@@ -194,7 +175,7 @@ MIR_CreateDevice(int device_index)
     device->SetWindowMinimumSize = MIR_SetWindowMinimumSize;
     device->SetWindowMaximumSize = MIR_SetWindowMaximumSize;
     device->SetWindowTitle       = MIR_SetWindowTitle;
-    device->SetWindowGrab        = MIR_SetWindowGrab;
+    device->SetWindowMouseGrab   = MIR_SetWindowMouseGrab;
     device->SetWindowGammaRamp   = MIR_SetWindowGammaRamp;
     device->GetWindowGammaRamp   = MIR_GetWindowGammaRamp;
 
@@ -246,19 +227,19 @@ MIR_CreateDevice(int device_index)
 
 VideoBootStrap MIR_bootstrap = {
     MIR_DRIVER_NAME, "SDL Mir video driver",
-    MIR_Available, MIR_CreateDevice
+    MIR_CreateDevice
 };
 
 static SDL_DisplayMode
 MIR_ConvertModeToSDLMode(MirOutputMode const* mode, MirPixelFormat format)
 {
-    SDL_DisplayMode sdl_mode  = {
-        .format = MIR_GetSDLPixelFormat(format),
-        .w      = MIR_mir_output_mode_get_width(mode),
-        .h      = MIR_mir_output_mode_get_height(mode),
-        .refresh_rate = MIR_mir_output_mode_get_refresh_rate(mode),
-        .driverdata   = NULL
-    };
+    SDL_DisplayMode sdl_mode;
+
+    SDL_zero(sdl_mode);
+    sdl_mode.format = MIR_GetSDLPixelFormat(format);
+    sdl_mode.w = MIR_mir_output_mode_get_width(mode);
+    sdl_mode.h = MIR_mir_output_mode_get_height(mode);
+    sdl_mode.refresh_rate = (int)MIR_mir_output_mode_get_refresh_rate(mode);
 
     return sdl_mode;
 }
@@ -282,7 +263,7 @@ MIR_InitDisplayFromOutput(_THIS, MirOutput* output)
 
     SDL_zero(display);
 
-    // Unfortunate cast, but SDL_AddVideoDisplay will strdup this pointer so its read-only in this case.
+    /* Unfortunate cast, but SDL_AddVideoDisplay will strdup this pointer so its read-only in this case. */
     display.name = (char*)MIR_mir_output_type_name(MIR_mir_output_get_type(output));
 
     for (m = 0; m < num_modes; m++) {
@@ -294,7 +275,7 @@ MIR_InitDisplayFromOutput(_THIS, MirOutput* output)
     display.current_mode = current_mode;
 
     display.driverdata = output;
-    SDL_AddVideoDisplay(&display);
+    SDL_AddVideoDisplay(&display, SDL_FALSE);
 }
 
 static void
@@ -406,9 +387,9 @@ MIR_SetDisplayMode(_THIS, SDL_VideoDisplay* display, SDL_DisplayMode* mode)
         if (mode->format == sdl_format &&
             mode->w      == width &&
             mode->h      == height &&
-            mode->refresh_rate == refresh_rate) {
+            mode->refresh_rate == (int)refresh_rate) {
 
-            // FIXME Currently wont actually *set* anything. Need to wait for applying display changes
+            /* FIXME Currently wont actually *set* anything. Need to wait for applying display changes */
             MIR_mir_output_set_current_mode(output, mir_mode);
             return 0;
         }

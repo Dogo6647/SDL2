@@ -79,7 +79,7 @@ extern void
 MIR_SetWindowTitle(_THIS, SDL_Window* window);
 
 extern void
-MIR_SetWindowGrab(_THIS, SDL_Window* window, SDL_bool grabbed);
+MIR_SetWindowMouseGrab(_THIS, SDL_Window* window, SDL_bool grabbed);
 
 extern int
 MIR_SetWindowGammaRamp(_THIS, SDL_Window* window, Uint16 const* ramp);

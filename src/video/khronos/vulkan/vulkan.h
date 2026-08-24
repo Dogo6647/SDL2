@@ -67,6 +67,12 @@
 #endif
 
 
+#ifdef VK_USE_PLATFORM_MIR_KHR
+#include <mir_toolkit/client_types.h>
+#include "vulkan_mir.h"
+#endif
+
+
 #ifdef VK_USE_PLATFORM_XLIB_XRANDR_EXT
 #include <X11/Xlib.h>
 #include <X11/extensions/Xrandr.h>
