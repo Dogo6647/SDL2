@@ -3,6 +3,11 @@ if(${CMAKE_CURRENT_SOURCE_DIR} STREQUAL ${CMAKE_CURRENT_BINARY_DIR})
 endif()
 
 cmake_minimum_required(VERSION 3.5.0)
+
+if(POLICY CMP0077)
+    cmake_policy(SET CMP0077 NEW)
+endif()
+
 project(SDL2 C CXX)
 
 if (HAIKU)
